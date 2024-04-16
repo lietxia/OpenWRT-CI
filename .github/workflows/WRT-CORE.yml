@@ -49,10 +49,10 @@ jobs:
   wrt_core:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Projects
+      - name: Checkout Projects 获取代码
         uses: actions/checkout@main
 
-      - name: Free Disk Space
+      - name: Free Disk Space 释放空间
         uses: endersonmenezes/free-disk-space@main
         with:
           remove_android: true
@@ -71,7 +71,7 @@ jobs:
             /var/lib/mysql* /var/log/azure*"
           testing: false
 
-      - name: Initialization Environment
+      - name: Initialization Environment 初始化环境
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
@@ -85,7 +85,7 @@ jobs:
           sudo -E systemctl daemon-reload
           sudo -E timedatectl set-timezone "Asia/Shanghai"
 
-      - name: Initialization Values
+      - name: Initialization Values 初始化数值
         run: |
           export WRT_DATE=$(TZ=UTC-8 date +"%y.%m.%d_%H.%M.%S")
           export WRT_REPO=$(basename $GITHUB_WORKSPACE)
@@ -97,17 +97,17 @@ jobs:
           echo "WRT_SOURCE=$WRT_SOURCE" >> $GITHUB_ENV
           echo "WRT_TYPE=$WRT_TYPE" >> $GITHUB_ENV
 
-      - name: Clone Code
+      - name: Clone Code 复制代码
         run: |
           git clone --depth=1 --single-branch --branch $WRT_BRANCH $WRT_URL ./wrt/
 
           cd ./wrt/ && echo "WRT_HASH=$(git log -1 --pretty=format:'%h')" >> $GITHUB_ENV
 
-      - name: Check Scripts
+      - name: Check Scripts 检查脚本
         run: |
           find ./ -maxdepth 2 -type f -iregex ".*\(txt\|sh\)$" -exec dos2unix {} \; -exec chmod +x {} \;
 
-      - name: Check Patches
+      - name: Check Patches 检查补丁
         run: |
           if [ -f "$GITHUB_WORKSPACE/Scripts/Patches.sh" ]; then
             $GITHUB_WORKSPACE/Scripts/Patches.sh
@@ -116,7 +116,7 @@ jobs:
             echo "no patchs installed!"
           fi
 
-      - name: Check Caches
+      - name: Check Caches 检查缓存
         if: env.WRT_CFG == 'false'
         id: check-cache
         uses: actions/cache@main
@@ -127,7 +127,7 @@ jobs:
             ./wrt/staging_dir/host*
             ./wrt/staging_dir/tool*
 
-      - name: Update Caches
+      - name: Update Caches 更新缓存
         if: env.WRT_CFG == 'false'
         run: |
           if ${{steps.check-cache.outputs.cache-hit == 'true'}}; then
@@ -146,30 +146,25 @@ jobs:
             echo "caches cleanup done!"
           fi
 
-      - name: Update Feeds
+      - name: Update Feeds 更新Feeds
         run: |
           cd ./wrt/
 
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Custom Packages
+      - name: Custom Packages 额外软件包
         run: |
           cd ./wrt/package/
-
           $GITHUB_WORKSPACE/Scripts/Packages.sh
           $GITHUB_WORKSPACE/Scripts/Handles.sh
 
-      - name: Custom Settings
+      - name: Custom Settings 额外设置
         run: |
           cd ./wrt/
-
           rm -rf ./tmp* ./.config*
-
           cat $GITHUB_WORKSPACE/Config/$WRT_TARGET.txt $GITHUB_WORKSPACE/Config/General.txt >> .config
-
           $GITHUB_WORKSPACE/Scripts/Settings.sh
-
           make defconfig
 
       - name: Download Packages
@@ -179,14 +174,14 @@ jobs:
 
           make download -j$(nproc)
 
-      - name: Compile Firmware
+      - name: Compile Firmware 编译固件
         if: env.WRT_CFG == 'false'
         run: |
           cd ./wrt/
 
           make -j$(nproc) || make -j1 V=s
 
-      - name: Machine Information
+      - name: Machine Information 机器信息
         run: |
           cd ./wrt/
 
@@ -217,7 +212,7 @@ jobs:
             done
           fi
 
-      - name: Release Firmware
+      - name: Release Firmware 发行固件
         uses: softprops/action-gh-release@master
         with:
           tag_name: ${{env.WRT_TARGET}}_${{env.WRT_SOURCE}}_${{env.WRT_DATE}}
